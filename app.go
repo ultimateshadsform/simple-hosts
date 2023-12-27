@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/user"
 	"runtime"
+
+	"github.com/txn2/txeh"
 )
 
 // App struct
@@ -55,42 +57,45 @@ func (a *App) CheckAdmin() (bool, error) {
 }
 
 func (a *App) GetHosts() ([]Host, error) {
-	slog.Info("[App]: [GetHosts] Getting hosts")
-	hosts, err := readHostFile()
+	slog.Info("[App]: [GetHosts] Getting hosts file")
+
+	lines, err := txeh.ParseHosts(filePath)
 	if err != nil {
+		slog.Error("[App]: [GetHosts] Error parsing hosts file", "error", err.Error())
 		return nil, err
 	}
 
-	slog.Info("[App]: [GetHosts] Returning hosts", "hosts", fmt.Sprintf("%+v", hosts))
+	var hosts []Host
+
+	for _, line := range lines {
+		if line.LineType == txeh.EMPTY || line.LineType == txeh.COMMENT {
+			continue
+		}
+
+		hosts = append(hosts, Host{
+			IP:       line.Address,
+			Hostname: line.Hostnames[0],
+			Comment:  line.Comment,
+		})
+	}
+
+	slog.Info("[App]: [GetHosts] Returning hosts", "hosts", hosts)
 
 	return hosts, nil
 }
 
 func (a *App) UpdateHost(host Host) error {
-	slog.Info("[App]: [UpdateHost] Updating host", "host", fmt.Sprintf("%+v", host))
-	hosts, err := readHostFile()
+	slog.Info("[App]: [UpdateHost] Updating host", "host", host)
+
+	hosts.AddHost(host.IP, host.Hostname)
+
+	err := hosts.Save()
 	if err != nil {
+		slog.Error("[App]: [UpdateHost] Error saving hosts file", "error", err.Error())
 		return err
 	}
 
-	// Check if host exists and update
-
-	if containsHost(hosts, host) {
-		slog.Info("[App]: [UpdateHost] Host exists, updating")
-		hosts = updateHost(hosts, host)
-	} else {
-		slog.Info("[App]: [UpdateHost] Host does not exist, adding")
-		hosts = append(hosts, host)
-	}
-
-	slog.Info("[App]: [UpdateHost] Writing hosts to file", "hosts", fmt.Sprintf("%+v", hosts))
-	err = writeHostFile(hosts)
-	if err != nil {
-		slog.Error("[App]: [UpdateHost] Error writing hosts to file", "error", err.Error())
-		return err
-	}
-
-	slog.Info("[App]: [UpdateHost] Written hosts to file")
+	slog.Info("[App]: [UpdateHost] Host updated successfully")
 
 	return nil
 }

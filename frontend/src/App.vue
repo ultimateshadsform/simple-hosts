@@ -27,10 +27,8 @@ const copyClipboard = (text: string) => {
   navigator.clipboard.writeText(text);
 };
 
-const toggleEditMode = (host: Host) => {
+const toggleEditMode = async (host: Host) => {
   host.editMode = !host.editMode;
-
-
 
   if (!host.editMode) {
     host.host = host.host.trim();
@@ -41,11 +39,15 @@ const toggleEditMode = (host: Host) => {
       deleteHost(host.id);
     }
 
-    UpdateHost({
-      host: host.host,
-      ip: host.ip,
-      comment: host.comment,
-    } as main.Host);
+    try {
+      await UpdateHost({
+        host: host.host,
+        ip: host.ip,
+        comment: host.comment,
+      } as main.Host);
+    } catch (e) {
+      console.error(e);
+    }
   }
 };
 
