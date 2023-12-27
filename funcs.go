@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net"
 	"os"
-	"runtime"
 	"strings"
 )
 
@@ -77,15 +76,6 @@ func parseHostFile(file *os.File) (hosts []Host, err error) {
 func readHostFile() (hosts []Host, err error) {
 	// check if windows or linux
 
-	switch runtime.GOOS {
-	case "windows":
-		filePath = "C:\\Windows\\System32\\drivers\\etc\\hosts"
-	case "linux":
-		filePath = "/etc/hosts"
-	default:
-		filePath = "/etc/hosts"
-	}
-
 	// Check if file exists
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return nil, err
@@ -149,22 +139,34 @@ func writeHostFile(hosts []Host) error {
 
 		// Check if host exists and update
 
-		for _, host := range hosts {
-			if host.IP == fields[0] {
-				// Write new line
-				if _, err := file.WriteString(fmt.Sprintf("%s %s # %s\n", host.IP, host.Hostname, host.Comment)); err != nil {
-					slog.Error("[App]: [writeHostFile] Error writing to hosts file", "error", err.Error())
-					return err
-				}
-				break
-			}
-		}
+		if containsHost(hosts, Host{
+			IP: fields[0],
+		}) {
+			// Host exists, update it
 
-		// If host does not exist, add it
-		if !containsHost(hosts, Host{IP: fields[0]}) {
-			// Write new line
-			if _, err := file.WriteString(fmt.Sprintf("%s %s # %s\n", fields[0], fields[1], fields[2])); err != nil {
-				slog.Error("[App]: [writeHostFile] Error writing to hosts file", "error", err.Error())
+			// Update hostname
+			for _, host := range hosts {
+				if host.IP == fields[0] {
+					fields[0] = host.IP
+					fields[1] = host.Hostname
+					fields[2] = host.Comment
+					break
+				}
+			}
+
+			// Write updated line to file
+			_, err := file.WriteString(strings.Join(fields, " ") + "\n")
+			if err != nil {
+				slog.Error("[App]: [writeHostFile] Error writing hosts to file", "error", err.Error())
+				return err
+			}
+		} else {
+			// Host does not exist, Append it
+
+			// Write line to file
+			_, err := file.WriteString(line + "\n")
+			if err != nil {
+				slog.Error("[App]: [writeHostFile] Error writing hosts to file", "error", err.Error())
 				return err
 			}
 		}
@@ -188,4 +190,15 @@ func containsHost(hosts []Host, host Host) bool {
 	}
 
 	return false
+}
+
+func updateHost(hosts []Host, host Host) []Host {
+	for i, h := range hosts {
+		if h.IP == host.IP {
+			hosts[i] = host
+			break
+		}
+	}
+
+	return hosts
 }

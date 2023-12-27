@@ -74,26 +74,19 @@ func (a *App) UpdateHost(host Host) error {
 	}
 
 	// Check if host exists and update
-	// If host does not exist, add it
-	for i, h := range hosts {
-		if h.IP == host.IP {
-			hosts[i] = host
-			break
-		}
-	}
 
-	// If host does not exist, add it using if check
-	if !containsHost(hosts, host) {
-		slog.Warn("[App]: [UpdateHost] Host does not exist, adding it")
+	if containsHost(hosts, host) {
+		slog.Info("[App]: [UpdateHost] Host exists, updating")
+		hosts = updateHost(hosts, host)
+	} else {
+		slog.Info("[App]: [UpdateHost] Host does not exist, adding")
 		hosts = append(hosts, host)
 	}
 
-	slog.Info("[App]: [UpdateHost] Attempting to write hosts to file")
-
-	// Write hosts to file
+	slog.Info("[App]: [UpdateHost] Writing hosts to file", "hosts", fmt.Sprintf("%+v", hosts))
 	err = writeHostFile(hosts)
 	if err != nil {
-		slog.Error("[App]: [UpdateHost] Error writing hosts to file")
+		slog.Error("[App]: [UpdateHost] Error writing hosts to file", "error", err.Error())
 		return err
 	}
 
