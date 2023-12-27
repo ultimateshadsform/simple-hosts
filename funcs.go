@@ -124,31 +124,58 @@ func writeHostFile(hosts []Host) error {
 
 	defer file.Close()
 
-	// Check if host exists and update else append it
+	// Scan file by new line
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
 
-	// Loop through hosts in the file and check if they exist in the hosts slice
-	// If they exist, update them
+		// Skip comments
+		if strings.HasPrefix(line, "#") {
+			continue
+		}
 
-	for _, host := range hosts {
-		// Check if host exists
-		if containsHost(hosts, host) {
-			// Host exists, update it
-			slog.Info("[App]: [writeHostFile] Host exists, updating it", "host", fmt.Sprintf("%+v", host))
+		// Split line by whitespace
+		fields := strings.Fields(line)
 
-			// Write host to file
-			if _, err := file.WriteString(fmt.Sprintf("%s\t%s\t# %s\n", host.IP, host.Hostname, host.Comment)); err != nil {
-				return err
+		// Skip if line is empty
+		if len(fields) == 0 {
+			continue
+		}
+
+		// Skip if line doesn't have an IP address
+		if !isIP(fields[0]) {
+			continue
+		}
+
+		// Check if host exists and update
+
+		for _, host := range hosts {
+			if host.IP == fields[0] {
+				// Write new line
+				if _, err := file.WriteString(fmt.Sprintf("%s %s # %s\n", host.IP, host.Hostname, host.Comment)); err != nil {
+					slog.Error("[App]: [writeHostFile] Error writing to hosts file", "error", err.Error())
+					return err
+				}
+				break
 			}
-		} else {
-			// Host does not exist, append it
-			slog.Info("[App]: [writeHostFile] Host does not exist, appending it", "host", fmt.Sprintf("%+v", host))
+		}
 
-			// Write host to file
-			if _, err := file.WriteString(fmt.Sprintf("%s\t%s\t# %s\n", host.IP, host.Hostname, host.Comment)); err != nil {
+		// If host does not exist, add it
+		if !containsHost(hosts, Host{IP: fields[0]}) {
+			// Write new line
+			if _, err := file.WriteString(fmt.Sprintf("%s %s # %s\n", fields[0], fields[1], fields[2])); err != nil {
+				slog.Error("[App]: [writeHostFile] Error writing to hosts file", "error", err.Error())
 				return err
 			}
 		}
 	}
+
+	if err := scanner.Err(); err != nil {
+		slog.Error("[App]: [writeHostFile] Error scanning hosts file", "error", err.Error())
+		return err
+	}
+
+	// Write hosts to file
 
 	return nil
 }
