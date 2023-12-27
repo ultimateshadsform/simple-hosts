@@ -10,6 +10,6 @@ export function GetHosts() {
   return window['go']['main']['App']['GetHosts']();
 }
 
-export function Greet(arg1) {
-  return window['go']['main']['App']['Greet'](arg1);
+export function UpdateHost(arg1) {
+  return window['go']['main']['App']['UpdateHost'](arg1);
 }

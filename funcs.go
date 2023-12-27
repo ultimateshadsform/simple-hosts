@@ -2,6 +2,8 @@ package main
 
 import (
 	"bufio"
+	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"runtime"
@@ -48,29 +50,11 @@ func parseHostFile(file *os.File) (hosts []Host, err error) {
 			continue
 		}
 
-		// Check if line has comment and include it. Remove # from comment
-		// if len(fields) > 2 {
-		// 	hosts = append(hosts, Host{
-		// 		Hostname: fields[1],
-		// 		IP:       fields[0],
-		// 		Comment:  strings.TrimPrefix(fields[2], "#"),
-		// 	})
-		// 	continue
-		// }
-
-		// // Add host to hosts slice
-		// hosts = append(hosts, Host{
-		// 	Hostname: fields[1],
-		// 	IP:       fields[0],
-		// 	Comment:  fields[2],
-		// })
-
-		// Check if line has comment and include it. Remove # from comment
 		if len(fields) > 2 {
 			hosts = append(hosts, Host{
 				Hostname: fields[1],
 				IP:       fields[0],
-				Comment:  strings.TrimPrefix(strings.TrimSpace(strings.Join(fields[2:], " ")), "#"),
+				Comment:  strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(strings.Join(fields[2:], " ")), "#")),
 			})
 			continue
 		}
@@ -122,4 +106,59 @@ func readHostFile() (hosts []Host, err error) {
 	}
 
 	return hosts, nil
+}
+
+func writeHostFile(hosts []Host) error {
+	// Only replace the line and not the whole file
+	// Leave everything untouched and only replace the line needed
+	// This is to avoid losing comments and other lines that are not managed by this app
+
+	slog.Info("[App]: [writeHostFile] Writing hosts to file", "hosts", fmt.Sprintf("%+v", hosts))
+
+	// Open file for writing
+
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	// Check if host exists and update else append it
+
+	// Loop through hosts in the file and check if they exist in the hosts slice
+	// If they exist, update them
+
+	for _, host := range hosts {
+		// Check if host exists
+		if containsHost(hosts, host) {
+			// Host exists, update it
+			slog.Info("[App]: [writeHostFile] Host exists, updating it", "host", fmt.Sprintf("%+v", host))
+
+			// Write host to file
+			if _, err := file.WriteString(fmt.Sprintf("%s\t%s\t# %s\n", host.IP, host.Hostname, host.Comment)); err != nil {
+				return err
+			}
+		} else {
+			// Host does not exist, append it
+			slog.Info("[App]: [writeHostFile] Host does not exist, appending it", "host", fmt.Sprintf("%+v", host))
+
+			// Write host to file
+			if _, err := file.WriteString(fmt.Sprintf("%s\t%s\t# %s\n", host.IP, host.Hostname, host.Comment)); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func containsHost(hosts []Host, host Host) bool {
+	for _, h := range hosts {
+		if h.IP == host.IP {
+			return true
+		}
+	}
+
+	return false
 }

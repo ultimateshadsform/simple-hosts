@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { onBeforeMount, onMounted, ref } from 'vue';
 import { nanoid } from 'nanoid';
-import { CheckAdmin, GetHosts } from '../wailsjs/go/main/App';
+import { CheckAdmin, GetHosts, UpdateHost } from '../wailsjs/go/main/App';
+import { main } from '../wailsjs/go/models';
 import { Host } from '@/interfaces/interfaces';
 
 const hosts = ref<Host[]>([]);
@@ -29,6 +30,8 @@ const copyClipboard = (text: string) => {
 const toggleEditMode = (host: Host) => {
   host.editMode = !host.editMode;
 
+
+
   if (!host.editMode) {
     host.host = host.host.trim();
     host.ip = host.ip.trim();
@@ -37,6 +40,12 @@ const toggleEditMode = (host: Host) => {
     if (!host.host || !host.ip) {
       deleteHost(host.id);
     }
+
+    UpdateHost({
+      host: host.host,
+      ip: host.ip,
+      comment: host.comment,
+    } as main.Host);
   }
 };
 
@@ -84,45 +93,22 @@ onMounted(async () => {
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="host in hosts"
-            :key="host.id"
-            class="transition-all hover:bg-neutral-800 table-row justify-evenly w-full"
-          >
+          <tr v-for="host in hosts" :key="host.id"
+            class="transition-all hover:bg-neutral-800 table-row justify-evenly w-full">
             <td>
-              <input
-                v-if="host.editMode"
-                v-model="host.host"
-                class="w-full bg-neutral-900 text-center"
-              />
-              <p
-                v-else
-                @click="copyClipboard(host.host)"
-                class="w-fit cursor-pointer self-center m-auto"
-              >
+              <input v-if="host.editMode" v-model="host.host" class="w-full bg-neutral-900 text-center" />
+              <p v-else @click="copyClipboard(host.host)" class="w-fit cursor-pointer self-center m-auto">
                 {{ host.host }}
               </p>
             </td>
             <td>
-              <input
-                v-if="host.editMode"
-                v-model="host.ip"
-                class="w-full bg-neutral-900 text-center"
-              />
-              <p
-                v-else
-                @click="copyClipboard(host.ip)"
-                class="w-fit cursor-pointer self-center m-auto"
-              >
+              <input v-if="host.editMode" v-model="host.ip" class="w-full bg-neutral-900 text-center" />
+              <p v-else @click="copyClipboard(host.ip)" class="w-fit cursor-pointer self-center m-auto">
                 {{ host.ip }}
               </p>
             </td>
             <td>
-              <input
-                v-if="host.editMode"
-                v-model="host.comment"
-                class="w-full bg-neutral-900 text-center"
-              />
+              <input v-if="host.editMode" v-model="host.comment" class="w-full bg-neutral-900 text-center" />
               <p v-else class="w-fit self-center m-auto">
                 {{ host.comment }}
               </p>
