@@ -2,15 +2,9 @@
 import { onBeforeMount, onMounted, ref } from 'vue';
 import { nanoid } from 'nanoid';
 import { CheckAdmin, GetHosts } from '../wailsjs/go/main/App';
-import { main } from '../wailsjs/go/models';
+import { Host } from '@/interfaces/interfaces';
 
-interface Host {
-  id: string;
-  host: string;
-  ip: string;
-  comment?: string;
-  editMode?: boolean;
-}
+const hosts = ref<Host[]>([]);
 
 const refreshHosts = async () => {
   try {
@@ -28,23 +22,6 @@ const refreshHosts = async () => {
     console.error(e);
   }
 }
-
-onBeforeMount(async () => {
-  try {
-    await CheckAdmin();
-  } catch (e) {
-    console.error(e);
-    alert('You need to run this app as admin!');
-  }
-})
-
-onMounted(async () => {
-  await refreshHosts();
-})
-
-const hosts = ref<Host[]>([]);
-
-const editMode = ref(false);
 
 const copyClipboard = (text: string) => {
   navigator.clipboard.writeText(text);
@@ -76,6 +53,19 @@ const addHost = () => {
     editMode: true,
   });
 }
+
+onBeforeMount(async () => {
+  try {
+    await CheckAdmin();
+  } catch (e) {
+    console.error(e);
+    alert('You need to run this app as admin!');
+  }
+})
+
+onMounted(async () => {
+  await refreshHosts();
+})
 </script>
 
 <template>
