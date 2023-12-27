@@ -1,11 +1,10 @@
-# README
+# Simple Hosts
 
 ## About
 
-This is the official Wails Vue-TS template.
+This app is a simple hosts file editor that support windows, mac, linux.
 
-You can configure the project by editing `wails.json`. More information about the project settings can be found
-here: https://wails.io/docs/reference/project-config
+Currently it only supports reading.
 
 ## Live Development
 
